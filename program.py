@@ -30,10 +30,8 @@ def mainFunc():
         query_for_search = model.encode([f.read()])
 
     # index.add(np.load("vs_dir.npy"))
-    start = datetime.datetime.now()
     currTime=Message(f"Начало поиска...",currTime)
     res = index.search(query_for_search, 3)  # index.ntotal)
-    end = datetime.datetime.now() - start
     currTime=Message(f"Поиск занял...",currTime)
     # # print(res[0])
     print(res[1])
