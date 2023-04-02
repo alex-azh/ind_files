@@ -3,7 +3,6 @@ import os
 
 import faiss
 import numpy as np
-from memory_profiler import profile
 from sentence_transformers import SentenceTransformer
 
 
@@ -12,7 +11,7 @@ def Message(s: str, beforeTimestamp):
     print(s,currentTime, f"({(currentTime-beforeTimestamp)})")
     return datetime.datetime.now()
 
-@profile
+# @profile
 def mainFunc():
     currTime=Message(f"Started...",datetime.datetime.now())
     # загрузка предобученной модели и создание индекса faiss
@@ -58,6 +57,7 @@ def GetVectorsByFiles(dir, model: SentenceTransformer):
         for filename in filenames:
             fullPath = os.path.join(dirpath, filename)
             with open(fullPath, 'r') as f:
+                print(np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1)))
                 yield np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1))
 
 
