@@ -3,62 +3,62 @@ import os
 
 import faiss
 import numpy as np
+from memory_profiler import profile
 from sentence_transformers import SentenceTransformer
 
 
 def Message(s: str, beforeTimestamp):
-    currentTime=datetime.datetime.now()
-    print(s,currentTime, f"({(currentTime-beforeTimestamp)})")
+    currentTime = datetime.datetime.now()
+    print(s, currentTime, f"({(currentTime - beforeTimestamp)})")
     return datetime.datetime.now()
 
-# @profile
+
+@profile
 def mainFunc():
-    currTime=Message(f"Started...",datetime.datetime.now())
+    currTime = Message(f"Started...", datetime.datetime.now())
     # загрузка предобученной модели и создание индекса faiss
     model = SentenceTransformer('cointegrated/rubert-tiny')
-    index = faiss.IndexHNSWFlat(312, 5)
-
-    currTime=Message(f"Начало добавления векторов в индекс...",currTime)
-    # создание вектора из эмбеддингов по каждому файлу и добавление в индекс
-    for vector in GetVectorsByFiles("texts", model):
-        index.add(vector)
-
+    indexName = "myindex"
+    if os.path.isfile(indexName):
+        currTime = Message(f"Инициализация индекса из файла...", currTime)
+        index = faiss.read_index(indexName)
+    else:
+        currTime = Message(f"Начало добавления векторов в индекс...", currTime)
+        if indexName.endswith("2"):
+            index = faiss.IndexFlatL2(312)
+        else:
+            index = faiss.IndexHNSWFlat(312, 5)
+        # создание вектора из эмбеддингов по каждому файлу и добавление в индекс
+        for vector in GetVectorsByFiles("texts", model):
+            index.add(vector)
+        currTime = Message(f"Сохранение индекса...", currTime)
+        faiss.write_index(index, indexName)
     # осуществить поиск по индексу из содержимого заданного файла
-    currTime=Message(f"Загрузка содержимого файла для поиска...",currTime)
+    currTime = Message(f"Загрузка содержимого файла для поиска...", currTime)
     with open("ex.txt", 'r') as f:
         query_for_search = model.encode([f.read()])
 
-    # index.add(np.load("vs_dir.npy"))
-    currTime=Message(f"Начало поиска...",currTime)
+    currTime = Message(f"Начало поиска...", currTime)
     res = index.search(query_for_search, 3)  # index.ntotal)
-    currTime=Message(f"Поиск занял...",currTime)
-    # # print(res[0])
+    currTime = Message(f"Поиск занял...", currTime)
     print(res[1])
+    with open("ex2.txt", 'r') as f:
+        query_for_search = model.encode([f.read()])
+    currTime = Message(f"Начало поиска...", currTime)
+    res = index.search(query_for_search, 3)  # index.ntotal)
+    currTime = Message(f"Поиск занял...", currTime)
+    print(res[1])
+    # # print(res[0])
 
-
-def CreateVectors(model, filename: str = 'vectors2.npy', data_dir: str = "texts"):
-    """
-    Создание файла с векторами для каждого файла из папки.
-    :param filename: Имя для файла с векторами.
-    :param data_dir: Папка, из которой будут сканироваться все файлы.
-    :return: None, но создает файл.
-    """
-    file_list = os.listdir(data_dir)
-    # Создание пустого массива для векторных представлений
-    vectors = np.zeros((len(file_list), 312))
-    for i, file_name in enumerate(file_list):
-        with open(os.path.join(data_dir, file_name), 'r') as f:
-            text = f.read()
-            vectors[i, :] = model.encode(text)
-    np.save(filename, vectors)
 
 def GetVectorsByFiles(dir, model: SentenceTransformer):
     for dirpath, _, filenames in os.walk(dir):
         for filename in filenames:
             fullPath = os.path.join(dirpath, filename)
             with open(fullPath, 'r') as f:
-                print(np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1)))
+                # print(np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1)))
                 yield np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1))
+                f.close()
 
 
 if __name__ == "__main__":
