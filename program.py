@@ -13,6 +13,7 @@ def Message(s: str, beforeTimestamp):
     print(s, currentTime, f"({(currentTime - beforeTimestamp)})")
     return datetime.datetime.now()
 
+
 @profile
 def mainFunc():
     currTime = Message(f"Started...", datetime.datetime.now())
@@ -28,9 +29,12 @@ def mainFunc():
             index = faiss.IndexFlatL2(312)
         else:
             index = faiss.IndexHNSWFlat(312, 5)
+        readedFiles = []
+        nonReadedFiles = []
         # создание вектора из эмбеддингов по каждому файлу и добавление в индекс
-        for vector in GetVectorsByFiles("texts", model):
+        for vector in GetVectorsByFiles("texts", model, readedFiles, nonReadedFiles):
             index.add(vector)
+        print(nonReadedFiles)
         currTime = Message(f"Сохранение индекса...", currTime)
         faiss.write_index(index, indexName)
 
@@ -50,15 +54,27 @@ def mainFunc():
     currTime = Message(f"Поиск занял...", currTime)
     print(res[1])
 
-
-def GetVectorsByFiles(dir, model: SentenceTransformer):
+def GetVectorsByFiles(dir, model: SentenceTransformer, readedFiles: list, nonReadedFiles: list):
+    i = 0
     for dirpath, _, filenames in os.walk(dir):
         for filename in filenames:
             fullPath = os.path.join(dirpath, filename)
-            with open(fullPath, 'r') as f:
-                # print(np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1)))
-                yield np.reshape(model.encode(f.read(), convert_to_numpy=True), (1, -1))
-                f.close()
+            text = GetTextFromFile(fullPath)
+            if text == None:
+                nonReadedFiles.append(fullPath)
+            else:
+                yield np.reshape(model.encode(text, convert_to_numpy=True), (1, -1))
+                readedFiles.append(fullPath)
+                i += 1
+
+
+def GetTextFromFile(path: str):
+    try:
+        with open(path, 'r') as f:
+            text = f.read()
+        return text
+    except:
+        return None
 
 
 if __name__ == "__main__":
