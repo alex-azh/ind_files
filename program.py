@@ -3,6 +3,7 @@ import os
 
 import faiss
 import numpy as np
+# import psutil
 from memory_profiler import profile
 from sentence_transformers import SentenceTransformer
 
@@ -11,7 +12,6 @@ def Message(s: str, beforeTimestamp):
     currentTime = datetime.datetime.now()
     print(s, currentTime, f"({(currentTime - beforeTimestamp)})")
     return datetime.datetime.now()
-
 
 @profile
 def mainFunc():
@@ -33,6 +33,7 @@ def mainFunc():
             index.add(vector)
         currTime = Message(f"Сохранение индекса...", currTime)
         faiss.write_index(index, indexName)
+
     # осуществить поиск по индексу из содержимого заданного файла
     currTime = Message(f"Загрузка содержимого файла для поиска...", currTime)
     with open("ex.txt", 'r') as f:
@@ -48,7 +49,6 @@ def mainFunc():
     res = index.search(query_for_search, 3)  # index.ntotal)
     currTime = Message(f"Поиск занял...", currTime)
     print(res[1])
-    # # print(res[0])
 
 
 def GetVectorsByFiles(dir, model: SentenceTransformer):
