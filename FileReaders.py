@@ -14,13 +14,16 @@ def DOCReader(file: str):
 
 
 def PDFReader(file):
-    with fitz.open(file) as pdf_file:
-        # Получаем количество страниц в документе
-        num_pages = pdf_file.page_count
-        s=""
-        # Читаем содержимое каждой страницы и выводим его в консоль
-        for page_num in range(num_pages):
-            page = pdf_file[page_num]
-            s += page.get_text()
-    return s
+    try:
+        with fitz.open(file) as pdf_file:
+            # Получаем количество страниц в документе
+            num_pages = pdf_file.page_count
+            s=""
+            # Читаем содержимое каждой страницы и выводим его в консоль
+            for page_num in range(num_pages):
+                page = pdf_file[page_num]
+                s += page.get_text()
+        return s
+    except:
+        return None
 

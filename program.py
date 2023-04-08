@@ -1,11 +1,13 @@
 import datetime
 import os
+from pathlib import Path
 
 import faiss
 import numpy as np
 # import psutil
-from memory_profiler import profile
 from sentence_transformers import SentenceTransformer
+
+from FileReaders import PDFReader, DOCReader
 
 
 def Message(s: str, beforeTimestamp):
@@ -14,7 +16,7 @@ def Message(s: str, beforeTimestamp):
     return datetime.datetime.now()
 
 
-@profile
+# @profile
 def mainFunc():
     currTime = Message(f"Started...", datetime.datetime.now())
     # загрузка предобученной модели и создание индекса faiss
@@ -53,6 +55,15 @@ def mainFunc():
     res = index.search(query_for_search, 3)  # index.ntotal)
     currTime = Message(f"Поиск занял...", currTime)
     print(res[1])
+    text="The analytic continuation is an old yet persistent problem,"
+    currTime = Message(f"Начало поиска 3...", currTime)
+    res = index.search(model.encode([text]),3)
+    currTime = Message(f"Конец поиска 3...", currTime)
+    # readedFiles=[]
+    # for i, file in enumerate(os.listdir("texts")):
+    #     readedFiles.append(file)
+
+
 
 def GetVectorsByFiles(dir, model: SentenceTransformer, readedFiles: list, nonReadedFiles: list):
     i = 0
@@ -69,12 +80,20 @@ def GetVectorsByFiles(dir, model: SentenceTransformer, readedFiles: list, nonRea
 
 
 def GetTextFromFile(path: str):
-    try:
-        with open(path, 'r') as f:
-            text = f.read()
-        return text
-    except:
-        return None
+    suffix=Path(path).suffix
+    if suffix==".pdf":
+        return PDFReader(path)
+    elif suffix in [".doc",".docx"]:
+        return DOCReader(path)
+    else:
+        try:
+            with open(path, 'r') as f:
+                text = f.read()
+            return text
+        except:
+            text=PDFReader(path)
+            if text==None:
+                return DOCReader(path)
 
 
 if __name__ == "__main__":
