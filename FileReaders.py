@@ -14,7 +14,6 @@ def DOCReader(file: str):
 
 
 def PDFReader(file):
-
     with fitz.open(file) as pdf_file:
         # Получаем количество страниц в документе
         num_pages = pdf_file.page_count
