@@ -8,12 +8,16 @@ import numpy as np
 # import psutil
 from sentence_transformers import SentenceTransformer
 
+import MyDB.db as db
 from FileReaders import PDFReader, DOCReader
 
 
-def SaveArray(arr: list, name: str):
-    with open(name + '.pkl', 'wb') as file:
-        pickle.dump(arr, file)
+# faiss_index = faiss.IndexFlatL2(128)
+# faiss_index.metric_type = faiss.METRIC_INNER_PRODUCT
+# // normlize matrix
+# faiss_index.add(np.asmatrix(candidates, np.float32))
+# I was reading the doc, can I just replace the first two line with
+# faiss_index = faiss.IndexFlatIP(128)
 
 
 def OpenArray(name: str) -> list:
@@ -42,13 +46,10 @@ def mainFunc():
         if indexName.endswith("2"):
             index = faiss.IndexFlatL2(312)
         else:
-            index = faiss.IndexHNSWFlat(312, 5)
-        readedFiles = []
-        nonReadedFiles = []
+            index = faiss.IndexHNSWFlat(312, 8)
         # создание вектора из эмбеддингов по каждому файлу и добавление в индекс
-        for vector in GetVectorsByFiles("texts", model, readedFiles, nonReadedFiles):
+        for vector in GetVectorsByFiles("texts", model):
             index.add(vector)
-        print(nonReadedFiles)
         currTime = Message(f"Сохранение индекса...", currTime)
         faiss.write_index(index, indexName)
 
@@ -71,24 +72,20 @@ def mainFunc():
     currTime = Message(f"Начало поиска 3...", currTime)
     res = index.search(model.encode([text]), 3)
     currTime = Message(f"Конец поиска 3...", currTime)
-    # readedFiles=[]
-    # for i, file in enumerate(os.listdir("texts")):
-    #     readedFiles.append(file)
 
 
-def GetVectorsByFiles(dir, model: SentenceTransformer, readedFiles: list, nonReadedFiles: list):
+def GetVectorsByFiles(dir, model: SentenceTransformer):
     i = 0
     for dirpath, _, filenames in os.walk(dir):
         for filename in filenames:
             fullPath = os.path.join(dirpath, filename)
             text = GetTextFromFile(fullPath)
             if text == None:
-                nonReadedFiles.append(fullPath)
+                db.AddRow(fullPath, None)
             else:
                 yield np.reshape(model.encode(text, convert_to_numpy=True), (1, -1))
-                readedFiles.append(fullPath)
+                db.AddRow(fullPath, i)
                 i += 1
-            SaveArray()
 
 
 def GetTextFromFile(path: str):
