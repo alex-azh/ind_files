@@ -1,5 +1,5 @@
 import sqlite3
-con = sqlite3.connect("metanit.db")
+con = sqlite3.connect("mydb.db")
 
 def CreateTable():
     cursor = con.cursor()
@@ -30,6 +30,6 @@ def PrintTable():
         print(res)
     cursor.close()
 
-# CreateTable()
+CreateTable()
 # AddRow("test",None)
 # PrintTable()
