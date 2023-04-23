@@ -1,6 +1,5 @@
 import datetime
 import os
-import pickle
 from pathlib import Path
 
 import faiss
@@ -18,12 +17,6 @@ from FileReaders import PDFReader, DOCReader
 # faiss_index.add(np.asmatrix(candidates, np.float32))
 # I was reading the doc, can I just replace the first two line with
 # faiss_index = faiss.IndexFlatIP(128)
-
-
-def OpenArray(name: str) -> list:
-    with open(name + '.pkl', 'rb') as file:
-        loaded_array = pickle.load(file)
-    return loaded_array
 
 
 def Message(s: str, beforeTimestamp):
@@ -48,35 +41,38 @@ def mainFunc():
         else:
             index = faiss.IndexHNSWFlat(312, 8)
         # создание вектора из эмбеддингов по каждому файлу и добавление в индекс
-        for vector in GetVectorsByFiles("texts", model):
+        for vector in GetVectorsByFiles("C:/", model):
             index.add(vector)
         currTime = Message(f"Сохранение индекса...", currTime)
         faiss.write_index(index, indexName)
 
-    # осуществить поиск по индексу из содержимого заданного файла
-    currTime = Message(f"Загрузка содержимого файла для поиска...", currTime)
-    with open("ex.txt", 'r') as f:
-        query_for_search = model.encode([f.read()])
+    # # осуществить поиск по индексу из содержимого заданного файла
+    # currTime = Message(f"Загрузка содержимого файла для поиска...", currTime)
+    # with open("ex.txt", 'r') as f:
+    #     query_for_search = model.encode([f.read()])
 
-    currTime = Message(f"Начало поиска...", currTime)
-    res = index.search(query_for_search, 3)  # index.ntotal)
-    currTime = Message(f"Поиск занял...", currTime)
-    print(res[1])
-    with open("ex2.txt", 'r') as f:
-        query_for_search = model.encode([f.read()])
-    currTime = Message(f"Начало поиска...", currTime)
-    res = index.search(query_for_search, 3)  # index.ntotal)
-    currTime = Message(f"Поиск занял...", currTime)
-    print(res[1])
-    text = "The analytic continuation is an old yet persistent problem,"
-    currTime = Message(f"Начало поиска 3...", currTime)
-    res = index.search(model.encode([text]), 3)
-    currTime = Message(f"Конец поиска 3...", currTime)
+    # currTime = Message(f"Начало поиска...", currTime)
+    # res = index.search(query_for_search, 3)  # index.ntotal)
+    # currTime = Message(f"Поиск занял...", currTime)
+    # print(res[1])
+    # with open("ex2.txt", 'r',encoding="utf-8") as f:
+    #     query_for_search = model.encode([f.read()])
+    # currTime = Message(f"Начало поиска...", currTime)
+    # res = index.search(query_for_search, 3)  # index.ntotal)
+    # currTime = Message(f"Поиск занял...", currTime)
+    # print(res[1])
+    # text = "The analytic continuation is an old yet persistent problem,"
+    # currTime = Message(f"Начало поиска 3...", currTime)
+    # res = index.search(model.encode([text]), 3)
+    # currTime = Message(f"Конец поиска 3...", currTime)
+
+
+i = 0
 
 
 def GetVectorsByFiles(dir, model: SentenceTransformer):
-    i = 0
-    for dirpath, _, filenames in os.walk(dir):
+    global i
+    for dirpath, dirs, filenames in os.walk(dir):
         for filename in filenames:
             fullPath = os.path.join(dirpath, filename)
             text = GetTextFromFile(fullPath)
@@ -86,6 +82,8 @@ def GetVectorsByFiles(dir, model: SentenceTransformer):
                 yield np.reshape(model.encode(text, convert_to_numpy=True), (1, -1))
                 db.AddRow(fullPath, i)
                 i += 1
+        for dir in dirs:
+            GetVectorsByFiles(dir, model)
 
 
 def GetTextFromFile(path: str):
