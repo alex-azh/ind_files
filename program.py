@@ -5,6 +5,7 @@ from pathlib import Path
 import faiss
 import numpy as np
 # import psutil
+from memory_profiler import profile
 from sentence_transformers import SentenceTransformer
 
 import MyDB.db as db
@@ -25,13 +26,14 @@ def Message(s: str, beforeTimestamp):
     return datetime.datetime.now()
 
 
-# @profile
+@profile
 def mainFunc():
     currTime = Message(f"Started...", datetime.datetime.now())
     # загрузка предобученной модели и создание индекса faiss
     model = SentenceTransformer('cointegrated/rubert-tiny')
-    indexName = "myindex"
-    if os.path.isfile(indexName):
+    indexName = "myindex2"
+    tmpP=False
+    if os.path.isfile(indexName) and tmpP:
         currTime = Message(f"Инициализация индекса из файла...", currTime)
         index = faiss.read_index(indexName)
     else:
@@ -42,9 +44,11 @@ def mainFunc():
             index = faiss.IndexHNSWFlat(312, 8)
         # создание вектора из эмбеддингов по каждому файлу и добавление в индекс
         for vector in GetVectorsByFiles("C:/", model):
+            # currTime = Message(f"Добавление в индекс", currTime)
             index.add(vector)
-        currTime = Message(f"Сохранение индекса...", currTime)
-        faiss.write_index(index, indexName)
+            faiss.write_index(index, indexName)
+        # currTime = Message(f"Сохранение индекса...", currTime)
+        # faiss.write_index(index, indexName)
 
     # # осуществить поиск по индексу из содержимого заданного файла
     # currTime = Message(f"Загрузка содержимого файла для поиска...", currTime)
@@ -69,10 +73,11 @@ def mainFunc():
 
 i = 0
 
-
 def GetVectorsByFiles(dir, model: SentenceTransformer):
     global i
     for dirpath, dirs, filenames in os.walk(dir):
+        if dirpath.startswith("C:/Windows") or dirpath.startswith("C:/$RECYCLE.BIN") or dirpath.startswith("C:/AMD"):
+                continue
         for filename in filenames:
             fullPath = os.path.join(dirpath, filename)
             text = GetTextFromFile(fullPath)
@@ -83,13 +88,13 @@ def GetVectorsByFiles(dir, model: SentenceTransformer):
                 db.AddRow(fullPath, i)
                 i += 1
         for dir in dirs:
-            GetVectorsByFiles(dir, model)
+            GetVectorsByFiles(Path(r"{dirpath+dir}"), model)
 
 
 def GetTextFromFile(path: str):
     ppath = Path(path)
     suffix = ppath.suffix
-    notSupported = [".sys", ".exe"]
+    notSupported = [".sys", ".exe",".dll", ".bin", ".iso"]
     # более 500 мб не проверять
     if suffix in notSupported or ppath.stat().st_size > 524288000:
         return None
@@ -99,13 +104,13 @@ def GetTextFromFile(path: str):
         return DOCReader(path)
     else:
         try:
-            with open(path, 'r') as f:
+            with open(path, 'r',encoding="utf-8") as f:
                 text = f.read()
             return text
-        except:
+        except Exception as ex:
+            # print(ex)
             text = PDFReader(path)
-            if text == None:
-                return DOCReader(path)
+            return text if text!=None else DOCReader(path)
 
 
 if __name__ == "__main__":
